@@ -70,6 +70,12 @@ int run_all_app()
 		/*
 		* LAB1: you may need to initialize your new fields of proc here
 		*/
+		p->task_info.status = Ready;
+		p->task_info.time = 0;
+
+		for (int j = 0; j < MAX_SYSCALL_NUM; j++) {
+			p->task_info.syscall_times[j] = 0;
+		}
 	}
 	return 0;
 }
