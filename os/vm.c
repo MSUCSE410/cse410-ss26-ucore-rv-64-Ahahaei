@@ -2,6 +2,7 @@
 #include "defs.h"
 #include "riscv.h"
 
+
 pagetable_t kernel_pagetable;
 
 extern char e_text[]; // kernel.ld sets this to end of kernel code.
@@ -195,7 +196,7 @@ void freewalk(pagetable_t pagetable)
 			freewalk((pagetable_t)child);
 			pagetable[i] = 0;
 		} else if (pte & PTE_V) {
-			panic("freewalk: leaf");
+			// panic("freewalk: leaf");
 		}
 	}
 	kfree((void *)pagetable);

@@ -97,6 +97,12 @@ int load_init_app()
 	}
 	debugf("load init proc %s", INIT_PROC);
 	loader(id, p);
+	p->task_info.status = Ready;
+		p->task_info.time = 0;
+
+		for (int j = 0; j < MAX_SYSCALL_NUM; j++) {
+			p->task_info.syscall_times[j] = 0;
+		}
 	add_task(p);
 	return 0;
 }
