@@ -59,6 +59,12 @@ int load_init_app()
 	}
 	debugf("load init app %s", INIT_PROC);
 	bin_loader(ip, p);
+	p->task_info.status = Ready;
+		p->task_info.time = 0;
+
+		for (int j = 0; j < MAX_SYSCALL_NUM; j++) {
+			p->task_info.syscall_times[j] = 0;
+		}
 	iput(ip);
 	char *argv[2];
 	argv[0] = INIT_PROC;

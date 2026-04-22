@@ -4,6 +4,8 @@
 #include "trap.h"
 #include "vm.h"
 #include "queue.h"
+#include "timer.h"
+
 
 struct proc pool[NPROC];
 __attribute__((aligned(16))) char kstack[NPROC][PAGE_SIZE];
@@ -37,6 +39,12 @@ void proc_init()
 		p->state = UNUSED;
 		p->kstack = (uint64)kstack[p - pool];
 		p->trapframe = (struct trapframe *)trapframe[p - pool];
+		p->task_info.status = UnInit;
+		p->task_info.time = 0;
+
+		for (int i = 0; i < MAX_SYSCALL_NUM; i++) {
+			p->task_info.syscall_times[i] = 0;
+    	}
 	}
 	idle.kstack = (uint64)boot_stack_top;
 	idle.pid = IDLE_PID;
@@ -52,20 +60,35 @@ int allocpid()
 
 struct proc *fetch_task()
 {
-	int index = pop_queue(&task_queue);
-	if (index < 0) {
-		debugf("No task to fetch\n");
-		return NULL;
+	// int index = pop_queue(&task_queue);
+	// if (index < 0) {
+	// 	debugf("No task to fetch\n");
+	// 	return NULL;
+	// }
+	// debugf("fetch task %d(pid=%d) from task queue\n", index,
+	//        pool[index].pid);
+	// return pool + index;
+	struct proc *p;
+	struct proc *min_p = NULL;
+	for (p = pool; p < &pool[NPROC]; p++) {
+		if (p->state == RUNNABLE) {
+			if (min_p == NULL || p->stride < min_p->stride) {
+				min_p = p;
+			}
+		}
 	}
-	debugf("fetch task %d(pid=%d) from task queue\n", index,
-	       pool[index].pid);
-	return pool + index;
+	debugf("fetch task %d(pid=%d) from pool (stride=%lu)\n", (int)(min_p - pool), min_p->pid, min_p->stride);
+	return min_p;
 }
 
 void add_task(struct proc *p)
 {
-	push_queue(&task_queue, p - pool);
-	debugf("add task %d(pid=%d) to task queue\n", p - pool, p->pid);
+	// push_queue(&task_queue, p - pool);
+	// debugf("add task %d(pid=%d) to task queue\n", p - pool, p->pid);
+
+
+	// Stride scheduling: process is already marked RUNNABLE by the caller;
+	debugf("add task %d(pid=%d) to runnable pool\n", (int)(p - pool), p->pid);
 }
 
 // Look in the process table for an UNUSED proc.
@@ -96,6 +119,8 @@ found:
 	memset((void *)p->files, 0, sizeof(struct file *) * FD_BUFFER_SIZE);
 	p->context.ra = (uint64)usertrapret;
 	p->context.sp = p->kstack + KSTACK_SIZE;
+	p->stride = 0;
+	p->priority = 16;
 	return p;
 }
 
@@ -137,6 +162,9 @@ void scheduler()
 			panic("all app are over!\n");
 		}
 		tracef("swtich to proc %d", p - pool);
+		if (p->start_time == 0)
+					p->start_time = get_cycle();
+		p->stride += BIG_STRIDE / p->priority;
 		p->state = RUNNING;
 		current_proc = p;
 		swtch(&idle.context, &p->context);

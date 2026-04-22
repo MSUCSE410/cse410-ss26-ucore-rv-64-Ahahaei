@@ -85,6 +85,7 @@ static struct inode *create(char *path, short type)
 	tracef("create dinode and inode type = %d\n", type);
 
 	ivalid(ip);
+	ip->nlink = 1;
 	iupdate(ip);
 	if (dirlink(dp, path, ip->inum) < 0)
 		panic("create: dirlink");
